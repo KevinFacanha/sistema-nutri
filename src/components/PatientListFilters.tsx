@@ -1,7 +1,38 @@
 import React from 'react';
 import { Search, Users } from 'lucide-react';
 
-export type FilterCategory = 'all' | '0-14' | '15-29' | '30-44' | '45-59' | '60-89' | '90+';
+export const patientRangeFilters = [
+  { key: '0-14', label: '0-14 dias', icon: '🟢', color: 'bg-green-100 text-green-800', minDays: 0, maxDays: 14 },
+  { key: '15-29', label: '15-29 dias', icon: '🟡', color: 'bg-yellow-100 text-yellow-800', minDays: 15, maxDays: 29 },
+  { key: '30-44', label: '30-44 dias', icon: '🟠', color: 'bg-orange-100 text-orange-800', minDays: 30, maxDays: 44 },
+  { key: '45-59', label: '45-59 dias', icon: '🟤', color: 'bg-amber-100 text-amber-800', minDays: 45, maxDays: 59 },
+  { key: '60-89', label: '60-89 dias', icon: '🔴', color: 'bg-red-100 text-red-800', minDays: 60, maxDays: 89 },
+  { key: '90-119', label: '90-119 dias', icon: '⚫', color: 'bg-gray-100 text-gray-800', minDays: 90, maxDays: 119 },
+  { key: '120-179', label: '120-179 dias', icon: '⚫', color: 'bg-gray-100 text-gray-800', minDays: 120, maxDays: 179 },
+  { key: '180-359', label: '180-359 dias', icon: '⚫', color: 'bg-gray-100 text-gray-800', minDays: 180, maxDays: 359 },
+  { key: '360+', label: '360+ dias', icon: '⚫', color: 'bg-gray-100 text-gray-800', minDays: 360, maxDays: null }
+] as const;
+
+export type PatientRangeKey = typeof patientRangeFilters[number]['key'];
+export type FilterCategory = 'all' | PatientRangeKey;
+
+export const patientFilterOptions = [
+  { key: 'all', label: 'Todos', icon: '🔄', color: 'bg-gray-100 text-gray-800' },
+  ...patientRangeFilters
+] as const;
+
+export const getPatientRangeByDays = (days: number) => {
+  const normalizedDays = Math.max(days, 0);
+  const match = patientRangeFilters.find((range) => (
+    normalizedDays >= range.minDays && (range.maxDays === null || normalizedDays <= range.maxDays)
+  ));
+
+  return match ?? patientRangeFilters[patientRangeFilters.length - 1];
+};
+
+export const getPatientCategoryByDays = (days: number): PatientRangeKey => {
+  return getPatientRangeByDays(days).key;
+};
 
 interface PatientListFiltersProps {
   activeFilter: FilterCategory;
@@ -18,20 +49,7 @@ export const PatientListFilters: React.FC<PatientListFiltersProps> = ({
   onSearchChange,
   patientCounts
 }) => {
-  const filters: Array<{
-    key: FilterCategory;
-    label: string;
-    icon: string;
-    color: string;
-  }> = [
-    { key: 'all', label: 'Todos', icon: '🔄', color: 'bg-gray-100 text-gray-800' },
-    { key: '0-14', label: '0-14 dias', icon: '🟢', color: 'bg-green-100 text-green-800' },
-    { key: '15-29', label: '15-29 dias', icon: '🟡', color: 'bg-yellow-100 text-yellow-800' },
-    { key: '30-44', label: '30-44 dias', icon: '🟠', color: 'bg-orange-100 text-orange-800' },
-    { key: '45-59', label: '45-59 dias', icon: '🟤', color: 'bg-amber-100 text-amber-800' },
-    { key: '60-89', label: '60-89 dias', icon: '🔴', color: 'bg-red-100 text-red-800' },
-    { key: '90+', label: '90+ dias', icon: '⚫', color: 'bg-gray-100 text-gray-800' }
-  ];
+  const filters = patientFilterOptions;
 
   return (
     <div className="space-y-4">

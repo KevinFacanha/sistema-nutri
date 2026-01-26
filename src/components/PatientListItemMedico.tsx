@@ -1,6 +1,7 @@
 import React from 'react';
 import { Edit, Trash2, User, Phone, Calendar } from 'lucide-react';
 import { PatientMedico } from '../types';
+import { getPatientRangeByDays } from './PatientListFilters';
 
 interface PatientListItemMedicoProps {
   patient: PatientMedico;
@@ -27,12 +28,8 @@ export const PatientListItemMedico: React.FC<PatientListItemMedicoProps> = ({ pa
   };
 
   const getDaysBadge = (days: number) => {
-    if (days <= 14) return { icon: '🟢', color: 'bg-green-100 text-green-800', label: `${days} dias` };
-    if (days <= 29) return { icon: '🟡', color: 'bg-yellow-100 text-yellow-800', label: `${days} dias` };
-    if (days <= 44) return { icon: '🟠', color: 'bg-orange-100 text-orange-800', label: `${days} dias` };
-    if (days <= 59) return { icon: '🟤', color: 'bg-amber-100 text-amber-800', label: `${days} dias` };
-    if (days <= 89) return { icon: '🔴', color: 'bg-red-100 text-red-800', label: `${days} dias` };
-    return { icon: '⚫', color: 'bg-gray-100 text-gray-800', label: `${days} dias` };
+    const range = getPatientRangeByDays(days);
+    return { icon: range.icon, color: range.color, label: `${days} dias` };
   };
 
   const days = getDaysSinceConsultation(patient.data_consulta);

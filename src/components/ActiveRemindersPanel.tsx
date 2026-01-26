@@ -6,15 +6,18 @@ interface ActiveRemindersPanelProps {
   patients: Patient[];
 }
 
+const reminderCategories = [15, 30, 45, 60, 90, 120, 180, 360] as const;
+type ReminderCategory = typeof reminderCategories[number];
+
 interface ActiveReminder {
   patient: Patient;
   daysSinceConsultation: number;
   daysSinceContact: number;
-  category: 15 | 30 | 45 | 60 | 90;
+  category: ReminderCategory;
 }
 
 export const ActiveRemindersPanel = ({ patients }: ActiveRemindersPanelProps) => {
-  const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set([15, 30, 45, 60, 90]));
+  const [expandedCategories, setExpandedCategories] = useState<Set<ReminderCategory>>(new Set(reminderCategories));
 
   const calculateDaysSince = (dateString: string): number => {
     const today = new Date();
@@ -36,8 +39,11 @@ export const ActiveRemindersPanel = ({ patients }: ActiveRemindersPanelProps) =>
         const daysSinceContact = calculateDaysSince(patient.last_contacted_at!);
         
         // Determinar categoria baseada no tempo desde a consulta
-        let category: 15 | 30 | 45 | 60 | 90 = 15;
-        if (daysSinceConsultation >= 90) category = 90;
+        let category: ReminderCategory = 15;
+        if (daysSinceConsultation >= 360) category = 360;
+        else if (daysSinceConsultation >= 180) category = 180;
+        else if (daysSinceConsultation >= 120) category = 120;
+        else if (daysSinceConsultation >= 90) category = 90;
         else if (daysSinceConsultation >= 60) category = 60;
         else if (daysSinceConsultation >= 45) category = 45;
         else if (daysSinceConsultation >= 30) category = 30;
@@ -54,18 +60,13 @@ export const ActiveRemindersPanel = ({ patients }: ActiveRemindersPanelProps) =>
   };
 
   const groupRemindersByCategory = (reminders: ActiveReminder[]) => {
-    const groups = {
-      15: reminders.filter(r => r.category === 15),
-      30: reminders.filter(r => r.category === 30),
-      45: reminders.filter(r => r.category === 45),
-      60: reminders.filter(r => r.category === 60),
-      90: reminders.filter(r => r.category === 90)
-    };
-
-    return groups;
+    return reminderCategories.reduce((groups, category) => {
+      groups[category] = reminders.filter(r => r.category === category);
+      return groups;
+    }, {} as Record<ReminderCategory, ActiveReminder[]>);
   };
 
-  const getCategoryInfo = (category: 15 | 30 | 45 | 60 | 90) => {
+  const getCategoryInfo = (category: ReminderCategory) => {
     switch (category) {
       case 15:
         return {
@@ -106,7 +107,34 @@ export const ActiveRemindersPanel = ({ patients }: ActiveRemindersPanelProps) =>
       case 90:
         return {
           icon: '⚫',
-          title: 'Acompanhamento de 90+ dias',
+          title: 'Acompanhamento de 90-119 dias',
+          bgColor: 'bg-gray-50',
+          borderColor: 'border-gray-300',
+          textColor: 'text-gray-800',
+          headerBg: 'bg-gray-100'
+        };
+      case 120:
+        return {
+          icon: '⚫',
+          title: 'Acompanhamento de 120-179 dias',
+          bgColor: 'bg-gray-50',
+          borderColor: 'border-gray-300',
+          textColor: 'text-gray-800',
+          headerBg: 'bg-gray-100'
+        };
+      case 180:
+        return {
+          icon: '⚫',
+          title: 'Acompanhamento de 180-359 dias',
+          bgColor: 'bg-gray-50',
+          borderColor: 'border-gray-300',
+          textColor: 'text-gray-800',
+          headerBg: 'bg-gray-100'
+        };
+      case 360:
+        return {
+          icon: '⚫',
+          title: 'Acompanhamento de 360+ dias',
           bgColor: 'bg-gray-50',
           borderColor: 'border-gray-300',
           textColor: 'text-gray-800',
@@ -115,7 +143,7 @@ export const ActiveRemindersPanel = ({ patients }: ActiveRemindersPanelProps) =>
     }
   };
 
-  const toggleCategory = (category: number) => {
+  const toggleCategory = (category: ReminderCategory) => {
     setExpandedCategories(prev => {
       const newSet = new Set(prev);
       if (newSet.has(category)) {
@@ -155,7 +183,7 @@ export const ActiveRemindersPanel = ({ patients }: ActiveRemindersPanelProps) =>
         </p>
       </div>
 
-      {([15, 30, 45, 60, 90] as const).map(category => {
+      {reminderCategories.map(category => {
         const categoryReminders = groupedReminders[category];
         if (categoryReminders.length === 0) return null;
 

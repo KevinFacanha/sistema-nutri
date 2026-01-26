@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Bell, Calendar, Users, Check, Info } from 'lucide-react';
 import { Patient } from '../types';
+import { buildWhatsAppMessage, copyTextToClipboard } from '../lib/whatsappMessage';
 
 interface PatientAlert {
   patient: Patient;
   daysSinceConsultation: number;
-  category: 7 | 15 | 30 | 45 | 60 | 90;
+  category: 7 | 15 | 30 | 45 | 60 | 90 | 120 | 180 | 360;
 }
 
 interface PatientAlertsPanelProps {
@@ -21,6 +22,7 @@ export const PatientAlertsPanel: React.FC<PatientAlertsPanelProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [contactingPatients, setContactingPatients] = useState<Set<string>>(new Set());
+  const [copiedPatients, setCopiedPatients] = useState<Set<string>>(new Set());
 
   const calculateDaysSince = (dateString: string): number => {
     const today = new Date();
@@ -35,7 +37,7 @@ export const PatientAlertsPanel: React.FC<PatientAlertsPanelProps> = ({
   };
 
   const shouldShowInAlerts = (patient: Patient): boolean => {
-    const milestones = [7, 15, 30, 45, 60, 90] as const;
+    const milestones = [7, 15, 30, 45, 60, 90, 120, 180, 360] as const;
     const days = calculateDaysSince(patient.last_consultation);
     
     // Só alertar em marcos exatos
@@ -50,7 +52,10 @@ export const PatientAlertsPanel: React.FC<PatientAlertsPanelProps> = ({
     return !contactedSameMilestone;
   };
 
-  const categorizePatient = (days: number): 7 | 15 | 30 | 45 | 60 | 90 => {
+  const categorizePatient = (days: number): 7 | 15 | 30 | 45 | 60 | 90 | 120 | 180 | 360 => {
+    if (days >= 360) return 360;
+    if (days >= 180) return 180;
+    if (days >= 120) return 120;
     if (days >= 90) return 90;
     if (days >= 60) return 60;
     if (days >= 45) return 45;
@@ -77,7 +82,10 @@ export const PatientAlertsPanel: React.FC<PatientAlertsPanelProps> = ({
       30: alerts.filter(a => a.category === 30),
       45: alerts.filter(a => a.category === 45),
       60: alerts.filter(a => a.category === 60),
-      90: alerts.filter(a => a.category === 90)
+      90: alerts.filter(a => a.category === 90),
+      120: alerts.filter(a => a.category === 120),
+      180: alerts.filter(a => a.category === 180),
+      360: alerts.filter(a => a.category === 360)
     };
 
     return groups;
@@ -107,7 +115,23 @@ export const PatientAlertsPanel: React.FC<PatientAlertsPanelProps> = ({
     }
   };
 
-  const getCategoryInfo = (category: 7 | 15 | 30 | 45 | 60 | 90) => {
+  const handleCopyMessage = async (patientId: string, patientName: string, category: number) => {
+    const message = buildWhatsAppMessage(patientName, category);
+    const copied = await copyTextToClipboard(message);
+
+    if (!copied) return;
+
+    setCopiedPatients(prev => new Set(prev).add(patientId));
+    window.setTimeout(() => {
+      setCopiedPatients(prev => {
+        const next = new Set(prev);
+        next.delete(patientId);
+        return next;
+      });
+    }, 1500);
+  };
+
+  const getCategoryInfo = (category: 7 | 15 | 30 | 45 | 60 | 90 | 120 | 180 | 360) => {
     switch (category) {
       case 7:
         return {
@@ -158,6 +182,33 @@ export const PatientAlertsPanel: React.FC<PatientAlertsPanelProps> = ({
         return {
           icon: '⚫',
           title: '90+ dias',
+          bgColor: 'bg-gray-50',
+          borderColor: 'border-gray-300',
+          textColor: 'text-gray-800',
+          badgeColor: 'bg-gray-100 text-gray-800'
+        };
+      case 120:
+        return {
+          icon: '⚫',
+          title: '120 dias',
+          bgColor: 'bg-gray-50',
+          borderColor: 'border-gray-300',
+          textColor: 'text-gray-800',
+          badgeColor: 'bg-gray-100 text-gray-800'
+        };
+      case 180:
+        return {
+          icon: '⚫',
+          title: '180 dias',
+          bgColor: 'bg-gray-50',
+          borderColor: 'border-gray-300',
+          textColor: 'text-gray-800',
+          badgeColor: 'bg-gray-100 text-gray-800'
+        };
+      case 360:
+        return {
+          icon: '⚫',
+          title: '360 dias',
           bgColor: 'bg-gray-50',
           borderColor: 'border-gray-300',
           textColor: 'text-gray-800',
@@ -229,7 +280,7 @@ export const PatientAlertsPanel: React.FC<PatientAlertsPanelProps> = ({
             </p>
           </div>
 
-          {([7, 15, 30, 45, 60, 90] as const).map(category => {
+          {([7, 15, 30, 45, 60, 90, 120, 180, 360] as const).map(category => {
             const categoryAlerts = groupedAlerts[category];
             if (categoryAlerts.length === 0) return null;
 
@@ -266,6 +317,17 @@ export const PatientAlertsPanel: React.FC<PatientAlertsPanelProps> = ({
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${categoryInfo.badgeColor}`}>
                           {alert.daysSinceConsultation} {alert.daysSinceConsultation === 1 ? 'dia' : 'dias'}
                         </span>
+                        <button
+                          onClick={() => handleCopyMessage(alert.patient.id, alert.patient.name, alert.category)}
+                          disabled={copiedPatients.has(alert.patient.id)}
+                          className={`px-4 py-2 text-sm rounded-md transition-colors flex items-center gap-2 ${
+                            copiedPatients.has(alert.patient.id)
+                              ? 'bg-green-600 text-white'
+                              : 'bg-blue-600 text-white hover:bg-blue-700'
+                          }`}
+                        >
+                          {copiedPatients.has(alert.patient.id) ? 'Copiado!' : 'Copiar mensagem (WhatsApp)'}
+                        </button>
                         <button
                           onClick={() => handleMarkAsContacted(alert.patient.id, alert.daysSinceConsultation)}
                           disabled={contactingPatients.has(alert.patient.id)}

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Users } from 'lucide-react';
-import { PatientListFilters, FilterCategory } from './PatientListFilters';
+import { PatientListFilters, FilterCategory, getPatientCategoryByDays, patientFilterOptions } from './PatientListFilters';
 import { PatientListItem } from './PatientListItem';
 import { Patient } from '../types';
 
@@ -35,15 +35,6 @@ export const PatientList: React.FC<PatientListProps> = ({
     return Math.floor(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  const getPatientCategory = (days: number): FilterCategory => {
-    if (days <= 14) return '0-14';
-    if (days <= 29) return '15-29';
-    if (days <= 44) return '30-44';
-    if (days <= 59) return '45-59';
-    if (days <= 89) return '60-89';
-    return '90+';
-  };
-
   const filteredAndSearchedPatients = useMemo(() => {
     let filtered = patients;
 
@@ -51,7 +42,7 @@ export const PatientList: React.FC<PatientListProps> = ({
     if (activeFilter !== 'all') {
       filtered = patients.filter(patient => {
         const days = getDaysSinceConsultation(patient.last_consultation);
-        return getPatientCategory(days) === activeFilter;
+        return getPatientCategoryByDays(days) === activeFilter;
       });
     }
 
@@ -73,19 +64,16 @@ export const PatientList: React.FC<PatientListProps> = ({
   }, [patients, activeFilter, searchTerm]);
 
   const patientCounts = useMemo(() => {
-    const counts: Record<FilterCategory, number> = {
-      'all': patients.length,
-      '0-14': 0,
-      '15-29': 0,
-      '30-44': 0,
-      '45-59': 0,
-      '60-89': 0,
-      '90+': 0
-    };
+    const counts = patientFilterOptions.reduce((acc, filter) => {
+      acc[filter.key] = 0;
+      return acc;
+    }, {} as Record<FilterCategory, number>);
+
+    counts.all = patients.length;
 
     patients.forEach(patient => {
       const days = getDaysSinceConsultation(patient.last_consultation);
-      const category = getPatientCategory(days);
+      const category = getPatientCategoryByDays(days);
       counts[category]++;
     });
 
