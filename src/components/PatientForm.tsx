@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, Save, User, Phone, Calendar } from 'lucide-react';
-import { Patient } from '../types';
+import { X, Save, User, Phone, Calendar, Hash, MapPin } from 'lucide-react';
+import { Patient, PatientOrigin, PatientSex } from '../types';
 
 interface PatientFormProps {
   patient?: Patient;
@@ -8,21 +8,44 @@ interface PatientFormProps {
   onClose: () => void;
 }
 
+const SEX_OPTIONS: PatientSex[] = ['Masculino', 'Feminino', 'Outro', 'Prefiro não informar'];
+const ORIGIN_OPTIONS: PatientOrigin[] = [
+  'Instagram',
+  'TikTok',
+  'Google Ads',
+  'Indicação de amigo',
+  'Indicação de outro profissional'
+];
+
 export const PatientForm: React.FC<PatientFormProps> = ({ patient, onSave, onClose }) => {
   const [formData, setFormData] = useState({
     name: patient?.name || '',
     phone: patient?.phone || '',
-    last_consultation: patient?.last_consultation || new Date().toISOString().split('T')[0]
+    last_consultation: patient?.last_consultation || new Date().toISOString().split('T')[0],
+    sexo: patient?.sexo || '',
+    idade: patient?.idade?.toString() || '',
+    origem_paciente: patient?.origem_paciente || ''
   });
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.phone.trim()) return;
+    if (formData.idade && (!/^\d+$/.test(formData.idade) || Number(formData.idade) <= 0)) return;
+
+    const idade = formData.idade ? Number(formData.idade) : undefined;
+    const payload: Omit<Patient, 'id' | 'created_at' | 'updated_at'> = {
+      name: formData.name,
+      phone: formData.phone,
+      last_consultation: formData.last_consultation
+    };
+    if (formData.sexo) payload.sexo = formData.sexo as PatientSex;
+    if (idade !== undefined) payload.idade = idade;
+    if (formData.origem_paciente) payload.origem_paciente = formData.origem_paciente as PatientOrigin;
 
     setLoading(true);
     try {
-      await onSave(formData);
+      await onSave(payload);
       onClose();
     } catch (error) {
       console.error('Erro ao salvar paciente:', error);
@@ -89,6 +112,60 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patient, onSave, onClo
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <User className="w-4 h-4 inline mr-2" />
+              Sexo
+            </label>
+            <select
+              value={formData.sexo}
+              onChange={(e) => setFormData(prev => ({ ...prev, sexo: e.target.value }))}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+            >
+              <option value="">Selecione</option>
+              {SEX_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Hash className="w-4 h-4 inline mr-2" />
+              Idade
+            </label>
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={formData.idade}
+              onChange={(e) => setFormData(prev => ({ ...prev, idade: e.target.value }))}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder="Ex.: 35"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <MapPin className="w-4 h-4 inline mr-2" />
+              Origem do Paciente
+            </label>
+            <select
+              value={formData.origem_paciente}
+              onChange={(e) => setFormData(prev => ({ ...prev, origem_paciente: e.target.value }))}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+            >
+              <option value="">Selecione</option>
+              {ORIGIN_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex gap-3 pt-4">
