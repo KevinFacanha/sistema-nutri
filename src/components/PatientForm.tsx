@@ -27,11 +27,30 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patient, onSave, onClo
     origem_paciente: patient?.origem_paciente || ''
   });
   const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const getFriendlyError = (error: unknown) => {
+    const message = error instanceof Error ? error.message : 'Erro ao salvar paciente';
+    const lowerMessage = message.toLowerCase();
+
+    if (
+      lowerMessage.includes('column') &&
+      (lowerMessage.includes('sexo') || lowerMessage.includes('idade') || lowerMessage.includes('origem_paciente'))
+    ) {
+      return 'As novas colunas ainda não existem no banco. Aplique a migration e tente novamente.';
+    }
+
+    return message;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
     if (!formData.name.trim() || !formData.phone.trim()) return;
-    if (formData.idade && (!/^\d+$/.test(formData.idade) || Number(formData.idade) <= 0)) return;
+    if (formData.idade && (!/^\d+$/.test(formData.idade) || Number(formData.idade) <= 0)) {
+      setSubmitError('Idade deve ser um número inteiro positivo.');
+      return;
+    }
 
     const idade = formData.idade ? Number(formData.idade) : undefined;
     const payload: Omit<Patient, 'id' | 'created_at' | 'updated_at'> = {
@@ -49,6 +68,7 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patient, onSave, onClo
       onClose();
     } catch (error) {
       console.error('Erro ao salvar paciente:', error);
+      setSubmitError(getFriendlyError(error));
     } finally {
       setLoading(false);
     }
@@ -185,6 +205,10 @@ export const PatientForm: React.FC<PatientFormProps> = ({ patient, onSave, onClo
               {loading ? 'Salvando...' : 'Salvar'}
             </button>
           </div>
+
+          {submitError && (
+            <p className="text-sm text-red-600">{submitError}</p>
+          )}
         </form>
       </div>
     </div>
