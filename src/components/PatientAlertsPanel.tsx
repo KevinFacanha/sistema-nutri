@@ -26,7 +26,7 @@ export const PatientAlertsPanel: React.FC<PatientAlertsPanelProps> = ({
 
   const calculateDaysSince = (dateString: string): number => {
     const today = new Date();
-    const date = new Date(dateString);
+    const date = new Date(dateString + 'T00:00:00');
     
     // Normalizar as datas para meia-noite para cálculo preciso
     today.setHours(0, 0, 0, 0);
