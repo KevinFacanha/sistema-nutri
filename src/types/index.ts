@@ -15,6 +15,7 @@ export interface Patient {
   idade?: number | null;
   origem_paciente?: PatientOrigin | null;
   last_contacted_at?: string;
+  last_contacted_milestone?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -28,6 +29,7 @@ export interface PatientMedico {
   idade?: number | null;
   origem_paciente?: PatientOrigin | null;
   last_contacted_at?: string;
+  last_contacted_milestone?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -41,6 +43,7 @@ export interface PatientMariane {
   idade?: number | null;
   origem_paciente?: PatientOrigin | null;
   last_contacted_at?: string;
+  last_contacted_milestone?: number | null;
   created_at: string;
   updated_at: string;
 }

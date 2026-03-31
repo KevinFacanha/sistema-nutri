@@ -15,6 +15,7 @@ import { PatientListMariane } from './PatientListMariane';
 import { usePatients } from '../hooks/usePatients';
 import { usePatientsMedico } from '../hooks/usePatientsMedico';
 import { usePatientsMariane } from '../hooks/usePatientsMariane';
+import { shouldShowPatientInAlerts } from '../lib/patientAlerts';
 import { Patient, PatientMedico, PatientMariane } from '../types';
 
 interface DashboardProps {
@@ -112,45 +113,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
 
   // Calcular lembretes ativos baseado na aba ativa
   const getActiveRemindersCount = () => {
-    const calculateDaysSince = (dateString: string): number => {
-      const today = new Date();
-      const date = new Date(dateString + 'T00:00:00');
-      
-      // Normalizar as datas para meia-noite para cálculo preciso
-      today.setHours(0, 0, 0, 0);
-      date.setHours(0, 0, 0, 0);
-      
-      const diffTime = today.getTime() - date.getTime();
-      return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    };
-
-    const shouldShowInAlerts = (lastConsultation: string, lastContactedAt?: string, lastContactedMilestone?: number) => {
-      const milestones = [7, 15, 30, 45, 60, 90] as const;
-      const days = calculateDaysSince(lastConsultation);
-      
-      // Só alertar em marcos exatos
-      if (!milestones.includes(days as any)) return false;
-      
-      // Verificar se já foi contatado no mesmo marco
-      const contactedSameMilestone =
-        lastContactedAt &&
-        lastContactedMilestone === days &&
-        new Date(lastContactedAt) > new Date(lastConsultation);
-      
-      return !contactedSameMilestone;
-    };
     switch (activeMainTab) {
       case 'rogerio':
         return patients.filter(p => 
-          shouldShowInAlerts(p.last_consultation, p.last_contacted_at, p.last_contacted_milestone)
+          shouldShowPatientInAlerts({
+            consultationDate: p.last_consultation,
+            lastContactedAt: p.last_contacted_at,
+            lastContactedMilestone: p.last_contacted_milestone
+          })
         ).length;
       case 'medico':
         return patientsMedico.filter(p => 
-          shouldShowInAlerts(p.data_consulta, p.last_contacted_at, p.last_contacted_milestone)
+          shouldShowPatientInAlerts({
+            consultationDate: p.data_consulta,
+            lastContactedAt: p.last_contacted_at,
+            lastContactedMilestone: p.last_contacted_milestone
+          })
         ).length;
       case 'mariane':
         return patientsMariane.filter(p => 
-          shouldShowInAlerts(p.data_consulta, p.last_contacted_at, p.last_contacted_milestone)
+          shouldShowPatientInAlerts({
+            consultationDate: p.data_consulta,
+            lastContactedAt: p.last_contacted_at,
+            lastContactedMilestone: p.last_contacted_milestone
+          })
         ).length;
       default:
         return 0;

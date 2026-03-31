@@ -2,11 +2,17 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Bell, Calendar, Users, Check, Info } from 'lucide-react';
 import { Patient } from '../types';
 import { buildWhatsAppMessage, copyTextToClipboard } from '../lib/whatsappMessage';
+import {
+  ALERT_MILESTONES,
+  AlertMilestone,
+  calculateDaysSinceConsultation,
+  shouldShowPatientInAlerts
+} from '../lib/patientAlerts';
 
 interface PatientAlert {
   patient: Patient;
   daysSinceConsultation: number;
-  category: 7 | 15 | 30 | 45 | 60 | 90 | 120 | 180 | 360;
+  category: AlertMilestone;
 }
 
 interface PatientAlertsPanelProps {
@@ -24,35 +30,7 @@ export const PatientAlertsPanel: React.FC<PatientAlertsPanelProps> = ({
   const [contactingPatients, setContactingPatients] = useState<Set<string>>(new Set());
   const [copiedPatients, setCopiedPatients] = useState<Set<string>>(new Set());
 
-  const calculateDaysSince = (dateString: string): number => {
-    const today = new Date();
-    const date = new Date(dateString + 'T00:00:00');
-    
-    // Normalizar as datas para meia-noite para cálculo preciso
-    today.setHours(0, 0, 0, 0);
-    date.setHours(0, 0, 0, 0);
-    
-    const diffTime = today.getTime() - date.getTime();
-    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  };
-
-  const shouldShowInAlerts = (patient: Patient): boolean => {
-    const milestones = [7, 15, 30, 45, 60, 90, 120, 180, 360] as const;
-    const days = calculateDaysSince(patient.last_consultation);
-    
-    // Só alertar em marcos exatos
-    if (!milestones.includes(days as any)) return false;
-    
-    // Verificar se já foi contatado no mesmo marco
-    const contactedSameMilestone =
-      patient.last_contacted_at &&
-      patient.last_contacted_milestone === days &&
-      new Date(patient.last_contacted_at) > new Date(patient.last_consultation);
-    
-    return !contactedSameMilestone;
-  };
-
-  const categorizePatient = (days: number): 7 | 15 | 30 | 45 | 60 | 90 | 120 | 180 | 360 => {
+  const categorizePatient = (days: number): AlertMilestone => {
     if (days >= 360) return 360;
     if (days >= 180) return 180;
     if (days >= 120) return 120;
@@ -66,11 +44,19 @@ export const PatientAlertsPanel: React.FC<PatientAlertsPanelProps> = ({
 
   const getPatientAlerts = (): PatientAlert[] => {
     return patients
-      .filter(shouldShowInAlerts)
-      .map(patient => ({
-        patient,
-        daysSinceConsultation: calculateDaysSince(patient.last_consultation),
-        category: categorizePatient(calculateDaysSince(patient.last_consultation))
+      .map(patient => {
+        const daysSinceConsultation = calculateDaysSinceConsultation(patient.last_consultation);
+
+        return {
+          patient,
+          daysSinceConsultation,
+          category: categorizePatient(daysSinceConsultation)
+        };
+      })
+      .filter(alert => shouldShowPatientInAlerts({
+        consultationDate: alert.patient.last_consultation,
+        lastContactedAt: alert.patient.last_contacted_at,
+        lastContactedMilestone: alert.patient.last_contacted_milestone
       }))
       .sort((a, b) => b.daysSinceConsultation - a.daysSinceConsultation);
   };
@@ -131,7 +117,7 @@ export const PatientAlertsPanel: React.FC<PatientAlertsPanelProps> = ({
     }, 1500);
   };
 
-  const getCategoryInfo = (category: 7 | 15 | 30 | 45 | 60 | 90 | 120 | 180 | 360) => {
+  const getCategoryInfo = (category: AlertMilestone) => {
     switch (category) {
       case 7:
         return {
@@ -280,7 +266,7 @@ export const PatientAlertsPanel: React.FC<PatientAlertsPanelProps> = ({
             </p>
           </div>
 
-          {([7, 15, 30, 45, 60, 90, 120, 180, 360] as const).map(category => {
+          {ALERT_MILESTONES.map(category => {
             const categoryAlerts = groupedAlerts[category];
             if (categoryAlerts.length === 0) return null;
 

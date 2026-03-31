@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Plus, Users } from 'lucide-react';
 import { PatientListFilters, FilterCategory, getPatientCategoryByDays, patientFilterOptions } from './PatientListFilters';
 import { PatientListItemMedico } from './PatientListItemMedico';
+import { calculateDaysSinceConsultation } from '../lib/patientAlerts';
 import { PatientMedico } from '../types';
 
 interface PatientListMedicoProps {
@@ -23,25 +24,13 @@ export const PatientListMedico: React.FC<PatientListMedicoProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [displayCount, setDisplayCount] = useState(10);
 
-  const getDaysSinceConsultation = (dataConsulta: string) => {
-    const today = new Date();
-    const consultationDate = new Date(dataConsulta);
-    
-    // Normalizar as datas para meia-noite para cálculo preciso
-    today.setHours(0, 0, 0, 0);
-    consultationDate.setHours(0, 0, 0, 0);
-    
-    const diffTime = today.getTime() - consultationDate.getTime();
-    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  };
-
   const filteredAndSearchedPatients = useMemo(() => {
     let filtered = patients;
 
     // Filtrar por categoria
     if (activeFilter !== 'all') {
       filtered = patients.filter(patient => {
-        const days = getDaysSinceConsultation(patient.data_consulta);
+        const days = calculateDaysSinceConsultation(patient.data_consulta);
         return getPatientCategoryByDays(days) === activeFilter;
       });
     }
@@ -57,8 +46,8 @@ export const PatientListMedico: React.FC<PatientListMedicoProps> = ({
 
     // Ordenar por dias desde consulta (mais recente primeiro)
     return filtered.sort((a, b) => {
-      const daysA = getDaysSinceConsultation(a.data_consulta);
-      const daysB = getDaysSinceConsultation(b.data_consulta);
+      const daysA = calculateDaysSinceConsultation(a.data_consulta);
+      const daysB = calculateDaysSinceConsultation(b.data_consulta);
       return daysA - daysB;
     });
   }, [patients, activeFilter, searchTerm]);
@@ -72,7 +61,7 @@ export const PatientListMedico: React.FC<PatientListMedicoProps> = ({
     counts.all = patients.length;
 
     patients.forEach(patient => {
-      const days = getDaysSinceConsultation(patient.data_consulta);
+      const days = calculateDaysSinceConsultation(patient.data_consulta);
       const category = getPatientCategoryByDays(days);
       counts[category]++;
     });

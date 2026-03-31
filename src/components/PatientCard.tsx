@@ -1,6 +1,7 @@
 import React from 'react';
 import { Edit, Trash2, User, Phone, Calendar } from 'lucide-react';
 import { Patient } from '../types';
+import { calculateDaysSinceConsultation } from '../lib/patientAlerts';
 
 interface PatientCardProps {
   patient: Patient;
@@ -14,19 +15,7 @@ export const PatientCard: React.FC<PatientCardProps> = ({ patient, onEdit, onDel
     return date.toLocaleDateString('pt-BR');
   };
 
-  const getDaysSinceConsultation = (lastConsultation: string) => {
-    const today = new Date();
-    const consultationDate = new Date(lastConsultation);
-    
-    // Normalizar as datas para meia-noite para cálculo preciso
-    today.setHours(0, 0, 0, 0);
-    consultationDate.setHours(0, 0, 0, 0);
-    
-    const diffTime = today.getTime() - consultationDate.getTime();
-    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  };
-
-  const days = getDaysSinceConsultation(patient.last_consultation);
+  const days = calculateDaysSinceConsultation(patient.last_consultation);
   const isOverdue = days >= 15;
 
   return (

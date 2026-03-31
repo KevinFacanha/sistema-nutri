@@ -2,6 +2,7 @@ import React from 'react';
 import { Edit, Trash2, User, Phone, Calendar } from 'lucide-react';
 import { PatientMariane } from '../types';
 import { getPatientRangeByDays } from './PatientListFilters';
+import { calculateDaysSinceConsultation } from '../lib/patientAlerts';
 
 interface PatientListItemMarianeProps {
   patient: PatientMariane;
@@ -15,24 +16,12 @@ export const PatientListItemMariane: React.FC<PatientListItemMarianeProps> = ({ 
     return date.toLocaleDateString('pt-BR');
   };
 
-  const getDaysSinceConsultation = (dataConsulta: string) => {
-    const today = new Date();
-    const consultationDate = new Date(dataConsulta);
-    
-    // Normalizar as datas para meia-noite para cálculo preciso
-    today.setHours(0, 0, 0, 0);
-    consultationDate.setHours(0, 0, 0, 0);
-    
-    const diffTime = today.getTime() - consultationDate.getTime();
-    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  };
-
   const getDaysBadge = (days: number) => {
     const range = getPatientRangeByDays(days);
     return { icon: range.icon, color: range.color, label: `${days} dias` };
   };
 
-  const days = getDaysSinceConsultation(patient.data_consulta);
+  const days = calculateDaysSinceConsultation(patient.data_consulta);
   const badge = getDaysBadge(days);
 
   return (
